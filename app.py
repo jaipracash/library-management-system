@@ -1,3 +1,6 @@
+import os
+
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.debug import console
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -32,9 +35,63 @@ app.jinja_env.filters['datetimeformat'] = datetimeformat
 app.jinja_env.filters['stringtodate'] = stringtodate
 
 # Initialize Firebase
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+load_dotenv()
+
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Initialize Flask app
+app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
+
+
+# Firebase Admin SDK Initialization
+def initialize_firebase():
+    try:
+        # Check if Firebase app already exists to avoid reinitialization
+        if not firebase_admin._apps:
+            # Try to get credentials from environment variables first
+            if all(k in os.environ for k in [
+                'FIREBASE_TYPE', 'FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY_ID',
+                'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_CLIENT_ID',
+                'FIREBASE_AUTH_URI', 'FIREBASE_TOKEN_URI',
+                'FIREBASE_AUTH_PROVIDER_CERT_URL', 'FIREBASE_CLIENT_CERT_URL'
+            ]):
+                cred = credentials.Certificate({
+                    "type": os.environ.get("FIREBASE_TYPE"),
+                    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+                    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+                    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
+                    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+                    "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+                    "auth_uri": os.environ.get("FIREBASE_AUTH_URI"),
+                    "token_uri": os.environ.get("FIREBASE_TOKEN_URI"),
+                    "auth_provider_x509_cert_url": os.environ.get("FIREBASE_AUTH_PROVIDER_CERT_URL"),
+                    "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_CERT_URL")
+                })
+            else:
+                # Fall back to service account file if exists (for local development)
+                if os.path.exists("serviceAccountKey.json"):
+                    cred = credentials.Certificate("serviceAccountKey.json")
+                else:
+                    raise ValueError("No Firebase credentials provided")
+
+            firebase_admin.initialize_app(cred)
+            logging.info("Firebase Admin SDK initialized successfully")
+
+        return firestore.client()
+
+    except Exception as e:
+        logging.error(f"Error initializing Firebase: {str(e)}")
+        raise
+
+
+# Initialize Firebase
+try:
+    db = initialize_firebase()
+except Exception as e:
+    logging.error(f"Failed to initialize Firebase: {str(e)}")
+    db = None
 
 # Collection names
 USERS_COLLECTION = "users"
