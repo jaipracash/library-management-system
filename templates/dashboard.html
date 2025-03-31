@@ -80,8 +80,8 @@
                     <tr>
                         <td>{{ transaction.book_title }}</td>
                         <td>{{ transaction.member_name }}</td>
-                        <td>{{ transaction.issue_date|datetimeformat('%d %b %Y') }}</td>
-                        <td>{{ transaction.due_date|datetimeformat('%d %b %Y') }}</td>
+<!--                        <td>{{ transaction.issue_date|datetimeformat('%d %b %Y') }}</td>-->
+<!--                        <td>{{ transaction.due_date|datetimeformat('%d %b %Y') }}</td>-->
                         <td>
                             {% if transaction.returned %}
                                 <span class="status-badge returned">Returned</span>

@@ -26,10 +26,9 @@ def stringtodate(value):
         return datetime.datetime.fromisoformat(value)
     return value
 
-# Then create the Flask app
+# Initialize Flask app
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
-
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
 # Register the filters with Jinja2
 app.jinja_env.filters['datetimeformat'] = datetimeformat
 app.jinja_env.filters['stringtodate'] = stringtodate
@@ -40,9 +39,7 @@ load_dotenv()
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Initialize Flask app
-app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
+
 
 
 # Firebase Admin SDK Initialization
@@ -215,7 +212,7 @@ def get_recent_transactions(limit=5):
         logging.error(f"Error fetching recent transactions: {str(e)}")
         return []
 
-@app.route('/home')
+
 @app.route('/dashboard')
 def home():
     stats = {
