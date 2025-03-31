@@ -72,6 +72,45 @@
             background: rgba(255,255,255,0.1);
         }
 
+        .user-profile {
+            background: white;
+            color: #2c3e50;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #3498db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
         .logout-container {
             margin-top: auto;
             padding-top: 20px;
@@ -201,6 +240,18 @@
                     </a>
                 </li>
             </ul>
+
+            {% if 'user_details' in session %}
+            <div class="user-profile">
+                <div class="user-avatar">
+                    {{ session['user_details']['name'][0]|upper }}
+                </div>
+                <div class="user-details">
+                    <div class="user-name">{{ session['user_details']['name'] }}</div>
+                    <div class="user-role">{{ session['user_details']['role']|capitalize }}</div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="logout-container">
                 <button class="logout-btn" onclick="confirmLogout()">
