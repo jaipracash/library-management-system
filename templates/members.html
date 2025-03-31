@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Members Management</h1>
+</div>
+
+<div class="content-body">
+    <!-- Action Buttons -->
+    <div class="action-buttons" style="margin-bottom: 20px;">
+        <button onclick="showForm('add-form')" style="padding: 10px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Add Member</button>
+    </div>
+
+    <!-- Add Member Form -->
+    <div id="add-form" class="book-form" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3>Add New Member</h3>
+        <form id="addMemberForm">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Full Name:</label>
+                <input type="text" id="add-name" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="add-name-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Date of Birth:</label>
+                <input type="date" id="add-dob" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="add-dob-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email:</label>
+                <input type="email" id="add-email" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="add-email-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone:</label>
+                <input type="tel" id="add-phone" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="add-phone-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Address:</label>
+                <input type="text" id="add-address" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="add-address-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <button type="button" onclick="validateAddMember()" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">Add Member</button>
+        </form>
+    </div>
+
+    <!-- Members Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Member ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Joined Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in members %}
+            <tr>
+                <td>{{ member.member_id }}</td>
+                <td>{{ member.name }}</td>
+                <td>{{ member.email }}</td>
+                <td>{{ member.phone }}</td>
+                <td>{{ member.membership_date[:10] }}</td>
+                <td>
+                    <button onclick="prepareUpdate('{{ member.id }}', '{{ member.member_id }}', '{{ member.name }}', '{{ member.dob }}', '{{ member.email }}', '{{ member.phone }}', '{{ member.address }}')"
+                            style="padding: 5px 10px; background: #f39c12; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 5px;">
+                        Edit
+                    </button>
+                    <button onclick="deleteMember('{{ member.id }}', '{{ member.name }}')"
+                            style="padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        Delete
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Update Member Form (hidden by default) -->
+    <div id="update-form" class="book-form" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px;">
+        <h3>Update Member</h3>
+        <form id="updateMemberForm">
+            <input type="hidden" id="update-id">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Member ID:</label>
+                <input type="text" id="update-member-id" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f0f0f0;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Full Name:</label>
+                <input type="text" id="update-name" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="update-name-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Date of Birth:</label>
+                <input type="date" id="update-dob" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="update-dob-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email:</label>
+                <input type="email" id="update-email" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="update-email-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone:</label>
+                <input type="tel" id="update-phone" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="update-phone-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Address:</label>
+                <input type="text" id="update-address" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <div id="update-address-error" class="error-message" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;"></div>
+            </div>
+            <button type="button" onclick="validateUpdateMember()" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Update Member</button>
+            <button type="button" onclick="cancelUpdate()" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Clear all error messages
+function clearErrors(formType) {
+    const errorElements = document.querySelectorAll(`#${formType}-form .error-message`);
+    errorElements.forEach(element => {
+        element.textContent = '';
+    });
+}
+
+// Validate a single field
+function validateField(fieldId, errorId) {
+    const field = document.getElementById(fieldId);
+    const errorElement = document.getElementById(errorId);
+    const value = field.value.trim();
+
+    if (!value) {
+        errorElement.textContent = 'This field is required';
+        field.style.borderColor = '#e74c3c';
+        return false;
+    }
+
+    // Additional validation for specific fields
+    if (fieldId.includes('email') && !/^\S+@\S+\.\S+$/.test(value)) {
+        errorElement.textContent = 'Please enter a valid email';
+        field.style.borderColor = '#e74c3c';
+        return false;
+    }
+
+    if (fieldId.includes('phone') && !/^[0-9]{10,15}$/.test(value)) {
+        errorElement.textContent = 'Phone must be 10-15 digits';
+        field.style.borderColor = '#e74c3c';
+        return false;
+    }
+
+    if (field.type === 'date') {
+        const dateValue = new Date(value);
+        const today = new Date();
+        if (dateValue >= today) {
+            errorElement.textContent = 'Date must be in the past';
+            field.style.borderColor = '#e74c3c';
+            return false;
+        }
+    }
+
+    // Clear error if valid
+    errorElement.textContent = '';
+    field.style.borderColor = '#ddd';
+    return true;
+}
+
+// Validate all fields in add member form
+function validateAddMember() {
+    clearErrors('add');
+
+    const fields = [
+        { id: 'add-name', error: 'add-name-error' },
+        { id: 'add-dob', error: 'add-dob-error' },
+        { id: 'add-email', error: 'add-email-error' },
+        { id: 'add-phone', error: 'add-phone-error' },
+        { id: 'add-address', error: 'add-address-error' }
+    ];
+
+    let isValid = true;
+    fields.forEach(field => {
+        if (!validateField(field.id, field.error)) {
+            isValid = false;
+        }
+    });
+
+    if (isValid) {
+        addMember();
+    } else {
+        Swal.fire({
+            title: 'Validation Error',
+            text: 'Please fill all required fields correctly',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Validate all fields in update member form
+function validateUpdateMember() {
+    clearErrors('update');
+
+    const fields = [
+        { id: 'update-name', error: 'update-name-error' },
+        { id: 'update-dob', error: 'update-dob-error' },
+        { id: 'update-email', error: 'update-email-error' },
+        { id: 'update-phone', error: 'update-phone-error' },
+        { id: 'update-address', error: 'update-address-error' }
+    ];
+
+    let isValid = true;
+    fields.forEach(field => {
+        if (!validateField(field.id, field.error)) {
+            isValid = false;
+        }
+    });
+
+    if (isValid) {
+        updateMember();
+    } else {
+        Swal.fire({
+            title: 'Validation Error',
+            text: 'Please fill all required fields correctly',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+function showForm(formId) {
+    document.getElementById('add-form').style.display = 'none';
+    document.getElementById('update-form').style.display = 'none';
+    document.getElementById(formId).style.display = 'block';
+}
+
+function prepareUpdate(id, memberId, name, dob, email, phone, address) {
+    document.getElementById('update-id').value = id;
+    document.getElementById('update-member-id').value = memberId;
+    document.getElementById('update-name').value = name;
+    document.getElementById('update-dob').value = dob;
+    document.getElementById('update-email').value = email;
+    document.getElementById('update-phone').value = phone;
+    document.getElementById('update-address').value = address;
+    showForm('update-form');
+}
+
+function cancelUpdate() {
+    showForm('add-form');
+}
+
+async function addMember() {
+    const memberData = {
+        name: document.getElementById('add-name').value,
+        dob: document.getElementById('add-dob').value,
+        email: document.getElementById('add-email').value,
+        phone: document.getElementById('add-phone').value,
+        address: document.getElementById('add-address').value
+    };
+
+    try {
+        const response = await fetch('/add_member', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(memberData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            Swal.fire({
+                title: 'Success!',
+                html: `Member added successfully!<br><br>Member ID: <strong>${result.member_id}</strong>`,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                document.getElementById('addMemberForm').reset();
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: result.error || 'Failed to add member',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            title: 'Error!',
+            text: error.message || 'Failed to add member',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+async function updateMember() {
+    const memberData = {
+        id: document.getElementById('update-id').value,
+        name: document.getElementById('update-name').value,
+        dob: document.getElementById('update-dob').value,
+        email: document.getElementById('update-email').value,
+        phone: document.getElementById('update-phone').value,
+        address: document.getElementById('update-address').value
+    };
+
+    try {
+        const response = await fetch('/update_member', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(memberData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Member updated successfully',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: result.error || 'Failed to update member',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            title: 'Error!',
+            text: error.message || 'Failed to update member',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+async function deleteMember(id, name) {
+    Swal.fire({
+        title: 'Are you sure?',
+        html: `You're about to delete member: <strong>${name}</strong>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch('/delete_member', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    Swal.fire(
+                        'Deleted!',
+                        'Member has been deleted.',
+                        'success'
+                    ).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error!',
+                        result.error || 'Failed to delete member',
+                        'error'
+                    );
+                }
+            } catch (error) {
+                Swal.fire(
+                    'Error!',
+                    error.message || 'Failed to delete member',
+                    'error'
+                );
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

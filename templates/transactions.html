@@ -1,0 +1,657 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Book Transactions</h1>
+    <p>Manage book issues and returns</p>
+</div>
+
+<div class="content-body">
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button onclick="showForm('issue-form')" class="action-btn issue-btn">Issue New Book</button>
+        <button onclick="showForm('return-form')" class="action-btn return-btn">Return Book</button>
+    </div>
+
+    <!-- Issue Book Form -->
+    <div id="issue-form" class="transaction-form" style="display: none;">
+        <h3>Issue New Book</h3>
+        <form id="issueBookForm">
+            <div class="form-group">
+                <label>Book ISBN:</label>
+                <input type="text" id="issue-book-id" required onchange="fetchBookDetails(this.value)">
+                <div id="book-details" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px; display: none;">
+                    <strong>Book:</strong> <span id="book-title"></span><br>
+                    <strong>Author:</strong> <span id="book-author"></span><br>
+                    <strong>Status:</strong> <span id="book-status"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Member ID:</label>
+                <input type="text" id="issue-member-id" required onchange="fetchMemberDetails(this.value)">
+                <div id="member-details" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px; display: none;">
+                    <strong>Name:</strong> <span id="member-name"></span><br>
+                    <strong>Email:</strong> <span id="member-email"></span><br>
+                    <strong>Phone:</strong> <span id="member-phone"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Issue Date:</label>
+                <input type="date" id="issue-date" required value="{{ today }}">
+            </div>
+
+            <div class="form-group">
+                <label>Due Date:</label>
+                <input type="date" id="due-date" required value="{{ due_date }}">
+            </div>
+
+            <button type="button" onclick="issueBook()" class="submit-btn">Issue Book</button>
+        </form>
+    </div>
+
+    <!-- Return Book Form -->
+    <div id="return-form" class="transaction-form" style="display: none;">
+        <h3>Return Book</h3>
+        <form id="returnBookForm">
+            <div class="form-group">
+                <label>Book ISBN:</label>
+                <input type="text" id="return-book-id" required onchange="fetchBookDetailsForReturn(this.value)">
+                <div id="return-book-details" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px; display: none;">
+                    <strong>Book:</strong> <span id="return-book-title"></span><br>
+                    <strong>Current Status:</strong> <span id="return-book-status"></span>
+                    <div id="issuance-info" style="margin-top: 5px;"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Return Date:</label>
+                <input type="date" id="return-date" required value="{{ today }}">
+            </div>
+
+            <div class="form-group">
+                <label>Condition:</label>
+                <select id="return-condition" class="form-control">
+                    <option value="good">Good</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="lost">Lost</option>
+                </select>
+            </div>
+
+            <button type="button" onclick="returnBook()" class="submit-btn">Mark as Returned</button>
+        </form>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button id="issuedTab" class="tab-button active" onclick="showTab('issued')">Issued Books</button>
+        <button id="returnedTab" class="tab-button" onclick="showTab('returned')">Returned Books</button>
+    </div>
+
+    <!-- Issued Books Table -->
+    <div id="issued-table" class="transaction-table">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Member Name</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in issued_transactions %}
+                <tr>
+                    <td>{{ transaction.book_title }}</td>
+                    <td>{{ transaction.member_name }}</td>
+                    <td>{{ transaction.issue_date_display }}</td>
+                    <td>{{ transaction.due_date_display }}</td>
+                    <td class="{% if transaction.days_remaining < 0 %}status-overdue{% else %}status-issued{% endif %}">
+                        {% if transaction.days_remaining < 0 %}
+                            Overdue ({{ -transaction.days_remaining }} days)
+                        {% else %}
+                            Due in {{ transaction.days_remaining }} days
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button onclick="prepareReturn('{{ transaction.book_id }}')"
+                                class="action-btn return-btn">Return</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center">No books currently issued</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Returned Books Table -->
+    <div id="returned-table" class="transaction-table" style="display: none;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Member Name</th>
+                    <th>Issue Date</th>
+                    <th>Return Date</th>
+                    <th>Condition</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in returned_transactions %}
+                <tr>
+                    <td>{{ transaction.book_title }}</td>
+                    <td>{{ transaction.member_name }}</td>
+                    <td>{{ transaction.issue_date_display }}</td>
+                    <td>{{ transaction.return_date_display }}</td>
+                    <td class="status-{{ transaction.condition }}">
+                        {{ transaction.condition|capitalize }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">No books have been returned yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Initialize forms
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('issue-form').style.display = 'none';
+    document.getElementById('return-form').style.display = 'none';
+    document.getElementById('returned-table').style.display = 'none';
+});
+
+async function fetchBookDetails(isbn) {
+    try {
+        const response = await fetch(`/get_book_details?isbn=${isbn}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const book = await response.json();
+
+        if (book) {
+            document.getElementById('book-title').textContent = book.title;
+            document.getElementById('book-author').textContent = book.author;
+            document.getElementById('book-status').textContent = book.status;
+            document.getElementById('book-details').style.display = 'block';
+
+            if (book.status !== 'available') {
+                await Swal.fire({
+                    title: 'Warning',
+                    text: 'This book is not available for issue',
+                    icon: 'warning',
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false
+                });
+            }
+        } else {
+            document.getElementById('book-details').style.display = 'none';
+            await Swal.fire({
+                title: 'Error',
+                text: 'Book not found',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                allowOutsideClick: false
+            });
+        }
+    } catch (error) {
+        await Swal.fire({
+            title: 'Error',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+    }
+}
+
+async function fetchMemberDetails(memberId) {
+    try {
+        const response = await fetch(`/get_member_details?member_id=${memberId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const member = await response.json();
+
+        const memberDetailsDiv = document.getElementById('member-details');
+
+        if (member) {
+            document.getElementById('member-name').textContent = member.name;
+            document.getElementById('member-email').textContent = member.email || 'N/A';
+            document.getElementById('member-phone').textContent = member.phone || 'N/A';
+            memberDetailsDiv.style.display = 'block';
+        } else {
+            memberDetailsDiv.style.display = 'none';
+            await Swal.fire({
+                title: 'Error',
+                text: 'Member not found',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                allowOutsideClick: false
+            });
+        }
+    } catch (error) {
+        await Swal.fire({
+            title: 'Error',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+    }
+}
+
+async function fetchBookDetailsForReturn(isbn) {
+    try {
+        const bookResponse = await fetch(`/get_book_details?isbn=${isbn}`);
+        if (!bookResponse.ok) {
+            throw new Error(`HTTP error! status: ${bookResponse.status}`);
+        }
+        const book = await bookResponse.json();
+
+        if (book) {
+            document.getElementById('return-book-title').textContent = book.title;
+            document.getElementById('return-book-status').textContent = book.status;
+            document.getElementById('return-book-details').style.display = 'block';
+
+            if (book.status === 'issued') {
+                const transResponse = await fetch(`/get_transaction_details?isbn=${isbn}`);
+                if (!transResponse.ok) {
+                    throw new Error(`HTTP error! status: ${transResponse.status}`);
+                }
+                const transaction = await transResponse.json();
+
+                if (transaction) {
+                    document.getElementById('issuance-info').innerHTML = `
+                        <strong>Issued to:</strong> ${transaction.member_name}<br>
+                        <strong>Issue Date:</strong> ${new Date(transaction.issue_date).toLocaleDateString()}<br>
+                        <strong>Due Date:</strong> ${new Date(transaction.due_date).toLocaleDateString()}
+                    `;
+                } else {
+                    throw new Error('No active transaction found for this book');
+                }
+            }
+        } else {
+            document.getElementById('return-book-details').style.display = 'none';
+            throw new Error('Book not found');
+        }
+    } catch (error) {
+        document.getElementById('return-book-details').style.display = 'none';
+        await Swal.fire({
+            title: 'Error',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+    }
+}
+
+async function issueBook() {
+    const isbn = document.getElementById('issue-book-id').value;
+    const memberId = document.getElementById('issue-member-id').value;
+    const issueDate = document.getElementById('issue-date').value;
+    const dueDate = document.getElementById('due-date').value;
+
+    if (!isbn || !memberId || !issueDate || !dueDate) {
+        await Swal.fire({
+            title: 'Error',
+            text: 'Please fill all fields',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+        return;
+    }
+
+    try {
+        const response = await fetch('/issue_book', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                book_id: isbn,
+                member_id: memberId,
+                issue_date: issueDate,
+                due_date: dueDate
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to issue book');
+        }
+
+        await Swal.fire({
+            title: 'Success',
+            text: 'Book issued successfully',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+
+        document.getElementById('issueBookForm').reset();
+        document.getElementById('book-details').style.display = 'none';
+        document.getElementById('member-details').style.display = 'none';
+        location.reload();
+    } catch (error) {
+        await Swal.fire({
+            title: 'Error',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+    }
+}
+
+async function returnBook() {
+    const isbn = document.getElementById('return-book-id').value;
+    const returnDate = document.getElementById('return-date').value;
+    const condition = document.getElementById('return-condition').value;
+
+    if (!isbn || !returnDate) {
+        await Swal.fire({
+            title: 'Error',
+            text: 'Please fill all required fields',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+        return;
+    }
+
+    try {
+        const response = await fetch('/return_book', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                book_id: isbn,
+                return_date: returnDate,
+                condition: condition
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to return book');
+        }
+
+        await Swal.fire({
+            title: 'Success',
+            text: 'Book returned successfully',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+
+        document.getElementById('returnBookForm').reset();
+        document.getElementById('return-book-details').style.display = 'none';
+        location.reload();
+    } catch (error) {
+        await Swal.fire({
+            title: 'Error',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            allowOutsideClick: false
+        });
+    }
+}
+
+function prepareReturn(bookId) {
+    showForm('return-form');
+    document.getElementById('return-book-id').value = bookId;
+    fetchBookDetailsForReturn(bookId);
+}
+
+function showForm(formId) {
+    document.getElementById('issue-form').style.display = 'none';
+    document.getElementById('return-form').style.display = 'none';
+    document.getElementById(formId).style.display = 'block';
+    document.getElementById(formId).scrollIntoView({ behavior: 'smooth' });
+}
+
+function showTab(tabId) {
+    document.getElementById('issued-table').style.display = 'none';
+    document.getElementById('returned-table').style.display = 'none';
+
+    document.getElementById('issuedTab').classList.remove('active');
+    document.getElementById('returnedTab').classList.remove('active');
+
+    document.getElementById(tabId + '-table').style.display = 'block';
+    document.getElementById(tabId + 'Tab').classList.add('active');
+}
+</script>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.action-btn {
+    padding: 10px 15px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.action-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.issue-btn {
+    background: #3498db;
+}
+
+.return-btn {
+    background: #2ecc71;
+}
+
+.transaction-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#book-details,
+#member-details,
+#return-book-details {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    display: none;
+}
+
+.submit-btn {
+    padding: 8px 15px;
+    background: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.submit-btn:hover {
+    background: #27ae60;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    color: #555;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-button:hover {
+    color: #3498db;
+}
+
+.tab-button.active {
+    color: #3498db;
+    border-bottom: 3px solid #3498db;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    background-color: #3498db;  /* Blue color */
+    color: white;               /* Text color */
+    padding: 12px 15px;         /* Spacing inside cells */
+    text-align: left;           /* Text alignment */
+    font-weight: bold;          /* Bold text */
+}
+
+.data-table th {
+    background-color: #3498db;
+}
+
+.data-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.text-danger {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.text-success {
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+.status-good {
+    color: #2ecc71;
+}
+
+.status-damaged {
+    color: #f39c12;
+}
+
+.status-lost {
+    color: #e74c3c;
+}
+    .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.data-table th {
+    background-color: #3498db;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+}
+
+.data-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.status-issued {
+    color: #e67e22;
+    font-weight: bold;
+}
+
+.status-overdue {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.status-good {
+    color: #2ecc71;
+}
+
+.status-damaged {
+    color: #f39c12;
+}
+
+.status-lost {
+    color: #e74c3c;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.return-btn {
+    background-color: #2ecc71;
+}
+
+.return-btn:hover {
+    background-color: #27ae60;
+}
+</style>
+{% endblock %}
